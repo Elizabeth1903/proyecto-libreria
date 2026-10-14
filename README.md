@@ -118,5 +118,3 @@ Luego abrir http://localhost:5000
 | DELETE | `/api/productos/<id>` | Borra un producto |
 
 ---
-
-Hecho por [Elizabeth Cabrejos](https://github.com/Elizabeth1903)

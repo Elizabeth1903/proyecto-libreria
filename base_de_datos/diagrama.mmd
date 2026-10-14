@@ -1,0 +1,45 @@
+erDiagram
+    CLIENTES ||--o{ VENTAS : realiza
+    VENTAS ||--|{ DETALLE_VENTA : tiene
+    PRODUCTOS ||--o{ DETALLE_VENTA : aparece_en
+    CATEGORIAS ||--o{ PRODUCTOS : agrupa
+    PROVEEDORES ||--o{ PRODUCTOS : abastece
+
+    CLIENTES {
+        int id_cliente PK
+        varchar nombre
+        char dni UK
+        varchar telefono
+        varchar correo
+    }
+    PROVEEDORES {
+        int id_proveedor PK
+        varchar nombre
+        char ruc UK
+        varchar telefono
+        varchar ciudad
+    }
+    CATEGORIAS {
+        int id_categoria PK
+        varchar nombre
+    }
+    PRODUCTOS {
+        int id_producto PK
+        varchar nombre
+        decimal precio
+        int stock
+        int id_categoria FK
+        int id_proveedor FK
+    }
+    VENTAS {
+        int id_venta PK
+        date fecha
+        int id_cliente FK
+    }
+    DETALLE_VENTA {
+        int id_detalle PK
+        int id_venta FK
+        int id_producto FK
+        int cantidad
+        decimal precio_unitario
+    }

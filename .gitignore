@@ -1,0 +1,9 @@
+# Bases de datos que se generan al ejecutar los programas
+*.db
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
+
+# Notas internas (el README.md ya cubre esto)
+LEEME.txt

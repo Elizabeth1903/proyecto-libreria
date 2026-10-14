@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productos - Libreria</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 0 15px;
+            background-color: #f4f4f4;
+        }
+        h1 { color: #2c3e50; }
+        form, table {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        input {
+            padding: 8px;
+            margin: 5px 5px 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            background-color: #2980b9;
+            cursor: pointer;
+        }
+        button.borrar { background-color: #c0392b; }
+        button.cancelar { background-color: #7f8c8d; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        th { background-color: #2c3e50; color: white; }
+        #mensaje { color: #c0392b; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Productos de la libreria</h1>
+
+    <form id="formulario">
+        <h3 id="tituloFormulario">Nuevo producto</h3>
+        <input type="text" id="nombre" placeholder="Nombre" required>
+        <input type="number" id="precio" placeholder="Precio" step="0.01" min="0" required>
+        <input type="number" id="stock" placeholder="Stock" min="0" required>
+        <button type="submit" id="botonGuardar">Guardar</button>
+        <button type="button" class="cancelar" id="botonCancelar" style="display:none">Cancelar</button>
+        <p id="mensaje"></p>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tabla"></tbody>
+    </table>
+
+    <script>
+        const URL_API = "/api/productos";
+        let idEditando = null;  // si es null estamos creando, si tiene un id estamos editando
+
+        const formulario = document.getElementById("formulario");
+        const tabla = document.getElementById("tabla");
+        const mensaje = document.getElementById("mensaje");
+
+        // Trae los productos de la API y los pone en la tabla
+        async function cargarProductos() {
+            const respuesta = await fetch(URL_API);
+            const productos = await respuesta.json();
+
+            tabla.innerHTML = "";
+            if (productos.length === 0) {
+                tabla.innerHTML = "<tr><td colspan='5'>No hay productos todavia</td></tr>";
+                return;
+            }
+
+            for (const p of productos) {
+                const fila = document.createElement("tr");
+
+                // se usa textContent para que no se pueda meter HTML en el nombre
+                const datos = [p.id, p.nombre, "S/ " + p.precio.toFixed(2), p.stock];
+                for (const dato of datos) {
+                    const celda = document.createElement("td");
+                    celda.textContent = dato;
+                    fila.appendChild(celda);
+                }
+
+                const acciones = document.createElement("td");
+
+                const botonEditar = document.createElement("button");
+                botonEditar.textContent = "Editar";
+                botonEditar.onclick = function () { empezarEdicion(p); };
+
+                const botonBorrar = document.createElement("button");
+                botonBorrar.textContent = "Borrar";
+                botonBorrar.className = "borrar";
+                botonBorrar.onclick = function () { borrarProducto(p.id); };
+
+                acciones.appendChild(botonEditar);
+                acciones.appendChild(document.createTextNode(" "));
+                acciones.appendChild(botonBorrar);
+                fila.appendChild(acciones);
+
+                tabla.appendChild(fila);
+            }
+        }
+
+        // Guardar: sirve para crear (POST) y para editar (PUT)
+        formulario.addEventListener("submit", async function (evento) {
+            evento.preventDefault();
+
+            const producto = {
+                nombre: document.getElementById("nombre").value,
+                precio: document.getElementById("precio").value,
+                stock: document.getElementById("stock").value
+            };
+
+            let url = URL_API;
+            let metodo = "POST";
+            if (idEditando !== null) {
+                url = URL_API + "/" + idEditando;
+                metodo = "PUT";
+            }
+
+            const respuesta = await fetch(url, {
+                method: metodo,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(producto)
+            });
+
+            if (respuesta.ok) {
+                limpiarFormulario();
+                cargarProductos();
+            } else {
+                const error = await respuesta.json();
+                mensaje.textContent = error.error;
+            }
+        });
+
+        // Pasa los datos del producto al formulario para editarlo
+        function empezarEdicion(producto) {
+            idEditando = producto.id;
+            document.getElementById("nombre").value = producto.nombre;
+            document.getElementById("precio").value = producto.precio;
+            document.getElementById("stock").value = producto.stock;
+            document.getElementById("tituloFormulario").textContent = "Editar producto " + producto.id;
+            document.getElementById("botonGuardar").textContent = "Actualizar";
+            document.getElementById("botonCancelar").style.display = "inline";
+        }
+
+        function limpiarFormulario() {
+            idEditando = null;
+            formulario.reset();
+            mensaje.textContent = "";
+            document.getElementById("tituloFormulario").textContent = "Nuevo producto";
+            document.getElementById("botonGuardar").textContent = "Guardar";
+            document.getElementById("botonCancelar").style.display = "none";
+        }
+
+        document.getElementById("botonCancelar").addEventListener("click", limpiarFormulario);
+
+        async function borrarProducto(id) {
+            if (!confirm("Seguro que quiere borrar este producto?")) {
+                return;
+            }
+            await fetch(URL_API + "/" + id, { method: "DELETE" });
+            cargarProductos();
+        }
+
+        cargarProductos();
+    </script>
+</body>
+</html>

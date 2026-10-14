@@ -16,7 +16,7 @@ Proyecto académico que cubre una tienda de útiles escolares de punta a punta: 
 
 Modelo normalizado con clientes, proveedores, categorías, productos, ventas y detalle de venta. Usa llaves primarias, foráneas y restricciones `UNIQUE` (DNI y RUC). Una venta puede incluir varios productos, por eso el detalle va en su propia tabla.
 
-mermaid
+```mermaid
 erDiagram
     CLIENTES ||--o{ VENTAS : realiza
     VENTAS ||--|{ DETALLE_VENTA : tiene
@@ -76,7 +76,7 @@ Las consultas de `3_consultas.sql` resuelven preguntas reales del negocio:
 - Clientes que aún no compran (`LEFT JOIN`)
 - Productos con stock bajo y a qué proveedor pedirlos
 
-Cómo probarla:
+**Cómo probarla:**
 
 ```bash
 cd base_de_datos
@@ -118,3 +118,5 @@ Luego abrir http://localhost:5000
 | DELETE | `/api/productos/<id>` | Borra un producto |
 
 ---
+
+Hecho por [Elizabeth Cabrejos](https://github.com/Elizabeth1903)

@@ -5,6 +5,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
@@ -13,7 +14,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-class ApiException(message: String, val retryable: Boolean = false, val waitMs: Long = 0) : Exception(message)
+class ApiException(message: String, val retryable: Boolean = false, val waitMs: Long = 0, val code: Int = 0) : Exception(message)
 class FormatException(message: String) : Exception(message)
 
 data class BatchResult(val translations: List<String>, val glossary: Map<String, String>)
@@ -23,14 +24,20 @@ data class BatchResult(val translations: List<String>, val glossary: Map<String,
  * (fandom, personajes, relaciones, resumen), un glosario persistente y los
  * párrafos anteriores ya traducidos, para que la traducción sea coherente.
  */
-class Translator(private val cfg: TranslationConfig) {
+class Translator(private val cfg: TranslationConfig, private val quick: Boolean = false) {
 
     companion object {
         private val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(240, TimeUnit.SECONDS)
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(150, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .build()
+
+        /** Algunas redes móviles se llevan mal con HTTP/2: si falla la conexión, probamos HTTP/1.1. */
+        private val h1Client by lazy { client.newBuilder().protocols(listOf(Protocol.HTTP_1_1)).build() }
+        @Volatile private var useH1 = false
+        @Volatile private var geminiThinkingOk = true
         private val JSON_TYPE = "application/json; charset=utf-8".toMediaType()
         private const val MAX_SEGMENTS_PER_BATCH = 40
 
@@ -86,11 +93,12 @@ class Translator(private val cfg: TranslationConfig) {
                 formatFails++
                 if (formatFails >= 2) throw e
             } catch (e: ApiException) {
-                if (!e.retryable || attempt >= 4) throw e
+                if (!e.retryable || attempt >= (if (quick) 1 else 4) || (quick && e.code == 429)) throw e
                 delay(if (e.waitMs > 0) e.waitMs.coerceAtMost(60_000) else 2000L shl attempt)
             } catch (e: IOException) {
+                if (!useH1) useH1 = true else if (attempt >= (if (quick) 1 else 2)) throw e
                 if (attempt >= 3) throw e
-                delay(2000L shl attempt)
+                delay(1500L)
             }
             attempt++
         }
@@ -232,14 +240,25 @@ class Translator(private val cfg: TranslationConfig) {
                     JSONObject().put("role", "user").put("parts", JSONArray().put(JSONObject().put("text", user)))
                 )
             )
-            .put("generationConfig", JSONObject().put("responseMimeType", "application/json"))
             .put("safetySettings", safety)
 
-        val json = post(
-            "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent",
-            body,
-            mapOf("x-goog-api-key" to cfg.apiKey),
-        )
+        fun config(thinking: Boolean) = JSONObject().put("responseMimeType", "application/json").apply {
+            // Traducir no necesita "pensar" mucho: pedimos razonamiento bajo para que responda rápido
+            if (thinking) put("thinkingConfig", JSONObject().put("thinkingLevel", "low"))
+        }
+
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent"
+        val headers = mapOf("x-goog-api-key" to cfg.apiKey)
+        val json = try {
+            post(url, body.put("generationConfig", config(geminiThinkingOk)), headers)
+        } catch (e: ApiException) {
+            if (geminiThinkingOk && e.code == 400 && e.message.orEmpty().contains("think", ignoreCase = true)) {
+                geminiThinkingOk = false
+                post(url, body.put("generationConfig", config(false)), headers)
+            } else {
+                throw e
+            }
+        }
         val cands = json.optJSONArray("candidates")
         if (cands == null || cands.length() == 0) {
             val reason = json.optJSONObject("promptFeedback")?.optString("blockReason").orEmpty()
@@ -304,7 +323,10 @@ class Translator(private val cfg: TranslationConfig) {
             .post(body.toString().toRequestBody(JSON_TYPE))
             .apply { headers.forEach { (k, v) -> header(k, v) } }
             .build()
-        client.newCall(req).execute().use { resp ->
+        val http = (if (useH1) h1Client else client).let {
+            if (quick) it.newBuilder().readTimeout(60, TimeUnit.SECONDS).build() else it
+        }
+        http.newCall(req).execute().use { resp ->
             val text = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) {
                 val msg = extractError(text)
@@ -313,11 +335,12 @@ class Translator(private val cfg: TranslationConfig) {
                         "Llegaste al límite de uso de tu API (429). $msg",
                         retryable = true,
                         waitMs = (resp.header("retry-after")?.toLongOrNull() ?: 0L) * 1000L,
+                        code = 429,
                     )
-                    500, 502, 503, 504, 529 -> ApiException("El servidor de la IA está ocupado (${resp.code}).", retryable = true)
-                    401, 403 -> ApiException("La API key no es válida o no tiene permisos (${resp.code}). $msg")
-                    404 -> ApiException("No encontré ese modelo; revisa el nombre en Ajustes. $msg")
-                    else -> ApiException("Error ${resp.code}: $msg")
+                    500, 502, 503, 504, 529 -> ApiException("El servidor de la IA está ocupado (${resp.code}). $msg", retryable = true, code = resp.code)
+                    401, 403 -> ApiException("La API key no es válida o no tiene permisos (${resp.code}). $msg", code = resp.code)
+                    404 -> ApiException("No encontré ese modelo; revisa el nombre en Ajustes. $msg", code = 404)
+                    else -> ApiException("Error ${resp.code}: $msg", code = resp.code)
                 }
             }
             return try {

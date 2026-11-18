@@ -227,12 +227,13 @@ fun SettingsScreen(nav: NavHostController) {
                 onClick = {
                     testing = true
                     scope.launch {
+                        val t0 = System.currentTimeMillis()
                         testResult = try {
                             val sample = Segment("t0", "“You came back,” she whispered, and <em>god</em>, she’d missed her.", "text")
-                            val r = Translator(p.config()).translate(WorkMeta(), listOf(sample), emptyMap(), emptyList())
-                            "¡Funciona! 💗\n\n" + htmlToPlain(r.translations.first())
+                            val r = Translator(p.config(), quick = true).translate(WorkMeta(), listOf(sample), emptyMap(), emptyList())
+                            "¡Funciona! 💗 (${(System.currentTimeMillis() - t0) / 1000} s)\n\n" + htmlToPlain(r.translations.first())
                         } catch (e: Exception) {
-                            "No funcionó 🥺\n\n${friendly(e)}"
+                            "No funcionó 🥺 (${(System.currentTimeMillis() - t0) / 1000} s)\n\n${friendly(e)}\n\nModelo: ${p.model(provider)}"
                         }
                         testing = false
                     }

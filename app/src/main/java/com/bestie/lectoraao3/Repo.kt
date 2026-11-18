@@ -37,9 +37,12 @@ object App {
 
 fun friendly(e: Throwable): String = when (e) {
     is ApiException -> e.message ?: "Error"
-    is UnknownHostException -> "No hay conexión a internet 📶"
-    is SocketTimeoutException -> "La conexión tardó demasiado. Intenta de nuevo."
-    else -> e.message ?: e.javaClass.simpleName
+    is UnknownHostException -> "No pude encontrar el servidor: revisa tu internet 📶 (${e.message})"
+    is SocketTimeoutException -> "La IA tardó demasiado en responder. Intenta de nuevo o prueba otro modelo."
+    is java.net.ConnectException -> "No pude conectar con el servidor (${e.message})"
+    is javax.net.ssl.SSLException -> "Problema de conexión segura (SSL): ${e.message}"
+    is java.io.IOException -> "Error de conexión: ${e.javaClass.simpleName} ${e.message.orEmpty()}"
+    else -> "${e.javaClass.simpleName}: ${e.message.orEmpty()}"
 }
 
 /** Opciones de filtros por sitio: (valor, etiqueta). */

@@ -1,0 +1,52 @@
+name: Compilar APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Si subiste el proyecto como .zip (por ejemplo desde el celular), lo descomprime
+      - name: Descomprimir proyecto si viene en zip
+        run: |
+          if [ ! -f settings.gradle.kts ]; then
+            for z in *.zip; do [ -f "$z" ] && unzip -o -q "$z" -d _src; done
+            if [ -d _src/LectoraAO3 ]; then cp -r _src/LectoraAO3/. . ; else cp -r _src/. . ; fi
+          fi
+          ls -la
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Compilar
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Renombrar APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk LectoraAO3.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LectoraAO3-apk
+          path: LectoraAO3.apk
+
+      - name: Publicar en Releases (descarga directa desde el celu)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0-build${{ github.run_number }}
+          name: Lectora AO3 (build ${{ github.run_number }})
+          files: LectoraAO3.apk

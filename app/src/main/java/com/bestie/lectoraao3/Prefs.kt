@@ -48,6 +48,7 @@ class Prefs(context: Context) {
             "Español rioplatense (voseo) 🧉",
         )
         const val HOME = "https://archiveofourown.org/"
+        const val HOME_FFN = "https://www.fanfiction.net/"
     }
 
     var provider: String
@@ -103,6 +104,31 @@ class Prefs(context: Context) {
     var batchChars: Int
         get() = sp.getInt("batchChars", 3500)
         set(v) = sp.edit().putInt("batchChars", v.coerceIn(800, 20000)).apply()
+
+    // ---- Lector
+    var readerTheme: String
+        get() = sp.getString("readerTheme", "rosa") ?: "rosa"
+        set(v) = sp.edit().putString("readerTheme", v).apply()
+
+    var readerFont: String
+        get() = sp.getString("readerFont", "serif") ?: "serif"
+        set(v) = sp.edit().putString("readerFont", v).apply()
+
+    var readerSize: Float
+        get() = sp.getFloat("readerSize", 18f)
+        set(v) = sp.edit().putFloat("readerSize", v).apply()
+
+    var readerLine: Float
+        get() = sp.getFloat("readerLine", 1.6f)
+        set(v) = sp.edit().putFloat("readerLine", v).apply()
+
+    var readerJustify: Boolean
+        get() = sp.getBoolean("readerJustify", false)
+        set(v) = sp.edit().putBoolean("readerJustify", v).apply()
+
+    var homeSite: String
+        get() = sp.getString("homeSite", "ao3") ?: "ao3"
+        set(v) = sp.edit().putString("homeSite", v).apply()
 
     var lastUrl: String
         get() = sp.getString("lastUrl", HOME) ?: HOME

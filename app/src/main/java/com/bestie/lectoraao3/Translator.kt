@@ -110,16 +110,18 @@ class Translator(private val cfg: TranslationConfig) {
         appendLine()
         if (meta.isWork) {
             appendLine("## The work you are translating")
+            appendLine("- Source: ${if (meta.site == "ffn") "FanFiction.net / FictionPress" else "Archive of Our Own (AO3)"}")
             if (meta.title.isNotBlank()) appendLine("- Title: ${meta.title}")
             if (meta.fandoms.isNotEmpty()) appendLine("- Fandom(s): ${meta.fandoms.joinToString(", ")}")
             if (meta.relationships.isNotEmpty()) appendLine("- Relationships: ${meta.relationships.joinToString(", ")}")
             if (meta.characters.isNotEmpty()) appendLine("- Characters: ${meta.characters.joinToString(", ")}")
             if (meta.tags.isNotEmpty()) appendLine("- Tags: ${meta.tags.joinToString(", ")}")
             if (meta.rating.isNotBlank()) appendLine("- Rating: ${meta.rating}")
+            if (meta.info.isNotBlank()) appendLine("- Story info line (genres, characters in [pairings], status): ${meta.info}")
             if (meta.summary.isNotBlank()) appendLine("- Summary: ${meta.summary.take(1200)}")
             appendLine()
         } else {
-            appendLine("You are translating an Archive of Our Own listing page: each segment may come from a different work (summaries, notes, tags).")
+            appendLine("You are translating a fanfiction archive listing page (AO3 or FanFiction.net): each segment may come from a different work (summaries, notes, tags).")
             appendLine()
         }
         appendLine("## How to translate")

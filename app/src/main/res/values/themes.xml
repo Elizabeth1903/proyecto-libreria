@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Lectora" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/rosa</item>
-        <item name="colorOnPrimary">@android:color/white</item>
-        <item name="colorPrimaryContainer">@color/rosa_claro</item>
-        <item name="colorOnPrimaryContainer">@color/ciruela</item>
-        <item name="colorSecondary">@color/lila</item>
+    <style name="Theme.Lectora" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/fondo</item>
     </style>
 </resources>

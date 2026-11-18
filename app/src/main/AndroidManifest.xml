@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
+        android:name=".LectoraApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
@@ -15,12 +16,13 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Abrir enlaces de AO3 desde otras apps -->
+            <!-- Abrir enlaces de fics desde otras apps -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -28,24 +30,15 @@
                 <data android:scheme="https" />
                 <data android:host="archiveofourown.org" />
                 <data android:host="www.archiveofourown.org" />
-                <data android:host="ao3.org" />
+                <data android:host="www.fanfiction.net" />
+                <data android:host="m.fanfiction.net" />
+                <data android:host="fanfiction.net" />
             </intent-filter>
-            <!-- Compartir un enlace a la app -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".GlossaryActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

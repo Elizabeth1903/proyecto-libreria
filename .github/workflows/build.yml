@@ -51,6 +51,6 @@ jobs:
       - name: Publicar en Releases (descarga directa desde el celu)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0-build${{ github.run_number }}
-          name: Lectora AO3 (build ${{ github.run_number }})
+          tag_name: v2.0-build${{ github.run_number }}
+          name: Lectora Fics (build ${{ github.run_number }})
           files: LectoraAO3.apk
